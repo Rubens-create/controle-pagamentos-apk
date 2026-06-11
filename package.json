@@ -11,6 +11,7 @@
     "cap:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "framer-motion": "^12.40.0",
@@ -20,6 +21,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@tailwindcss/vite": "4.1.17",
