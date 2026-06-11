@@ -39,6 +39,9 @@ jobs:
           npx cap add android
           npx @capacitor/assets generate --android
 
+      - name: Configure App Signature
+        run: node scripts/sign-setup.cjs
+
       - name: Sync Web Assets to Android
         run: npx cap sync
 
