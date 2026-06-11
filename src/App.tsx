@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import {
   Plus,
   CheckCircle2,
@@ -89,6 +90,83 @@ function App() {
 
   useEffect(() => {
     localStorage.setItem('@pagamentos:items', JSON.stringify(items));
+  }, [items]);
+
+  // Pedir permissão ao carregar o aplicativo
+  useEffect(() => {
+    const requestPermission = async () => {
+      try {
+        const check = await LocalNotifications.checkPermissions();
+        if (check.display !== 'granted') {
+          await LocalNotifications.requestPermissions();
+        }
+      } catch (err) {
+        console.warn('Permissões de notificação local não suportadas neste ambiente:', err);
+      }
+    };
+    requestPermission();
+  }, []);
+
+  // Recalcular e agendar notificações sempre que os itens mudarem
+  useEffect(() => {
+    const scheduleNotifications = async () => {
+      try {
+        // 1. Limpar todas as notificações anteriores
+        const pending = await LocalNotifications.getPending();
+        if (pending.notifications.length > 0) {
+          await LocalNotifications.cancel(pending);
+        }
+
+        const today = new Date();
+        const notificationsToSchedule = [];
+
+        // 2. Agendar notificações para os próximos 7 dias
+        for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+          const targetDate = new Date();
+          targetDate.setDate(today.getDate() + dayOffset);
+          targetDate.setHours(13, 0, 0, 0); // 13:00
+
+          // Pular se o horário de 13h00 de hoje já passou
+          if (dayOffset === 0 && today.getHours() >= 13) {
+            continue;
+          }
+
+          const targetDayNumber = targetDate.getDate();
+
+          // Filtrar itens que estarão vencidos nessa data alvo
+          const overdueCount = items.filter(item => {
+            if (item.isPaid || !item.dueDay) return false;
+            
+            // Uma conta está vencida se o dia de vencimento for menor que o dia atual
+            // Para a data alvo, está vencida se o dueDay for menor que o dia alvo
+            return item.dueDay < targetDayNumber;
+          }).length;
+
+          // 3. Se houver contas vencidas, agenda a notificação para aquele dia
+          if (overdueCount > 0) {
+            notificationsToSchedule.push({
+              id: dayOffset + 1,
+              title: 'Contas Vencidas!',
+              body: `Você tem ${overdueCount} conta${overdueCount > 1 ? 's' : ''} vencida${overdueCount > 1 ? 's' : ''} hoje.`,
+              schedule: { at: targetDate },
+              sound: 'default',
+              attachments: [],
+              actionTypeId: ''
+            });
+          }
+        }
+
+        if (notificationsToSchedule.length > 0) {
+          await LocalNotifications.schedule({
+            notifications: notificationsToSchedule
+          });
+        }
+      } catch (err) {
+        console.warn('LocalNotifications não suportadas ou falharam:', err);
+      }
+    };
+
+    scheduleNotifications();
   }, [items]);
 
   const handleAddItem = (e: React.FormEvent) => {

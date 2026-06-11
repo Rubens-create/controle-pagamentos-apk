@@ -35,7 +35,7 @@ jobs:
 
       - name: Install Capacitor Platforms & Generate Assets
         run: |
-          npm install @capacitor/android @capacitor/assets
+          npm install @capacitor/android @capacitor/assets @capacitor/local-notifications
           npx cap add android
           npx @capacitor/assets generate --android
 
